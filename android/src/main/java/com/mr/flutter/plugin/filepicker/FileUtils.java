@@ -122,7 +122,7 @@ public class FileUtils {
         }
     }
 
-    public static FileInfo openFileStream(final Context context, final Uri uri, boolean withData) {
+    public static FileInfo openFileStream(final Context context, final Uri uri, boolean withData) throws OutOfMemoryError{
 
         Log.i(TAG, "Caching from URI: " + uri.toString());
         FileOutputStream fos = null;

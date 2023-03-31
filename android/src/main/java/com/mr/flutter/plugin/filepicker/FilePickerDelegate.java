@@ -14,12 +14,14 @@ import android.os.Parcelable;
 import android.os.Message;
 import android.provider.DocumentsContract;
 import android.util.Log;
+import android.widget.Toast;
 
 import androidx.annotation.VisibleForTesting;
 import androidx.core.app.ActivityCompat;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 
 import io.flutter.plugin.common.EventChannel;
@@ -94,8 +96,15 @@ public class FilePickerDelegate implements PluginRegistry.ActivityResultListener
                             int currentItem = 0;
                             while (currentItem < count) {
                                 final Uri currentUri = data.getClipData().getItemAt(currentItem).getUri();
-                                final FileInfo file = FileUtils.openFileStream(FilePickerDelegate.this.activity, currentUri, loadDataToMemory);
-
+                                 FileInfo file = null;
+                                 try {
+                                     file = FileUtils.openFileStream(FilePickerDelegate.this.activity, currentUri, loadDataToMemory);
+                                 }catch (OutOfMemoryError exception){
+                                     Log.d(TAG,"Failed to allocate large file space"+exception.toString());
+                                     showToastOnMainThread("File very large");
+                                 }catch (Exception exception){
+                                     Log.d(TAG,"Failed to allocate large file space"+exception.toString());
+                                 }
                                 if(file != null) {
                                     files.add(file);
                                     Log.d(FilePickerDelegate.TAG, "[MultiFilePick] File #" + currentItem + " - URI: " + currentUri.getPath());
@@ -121,7 +130,15 @@ public class FilePickerDelegate implements PluginRegistry.ActivityResultListener
                                 return;
                             }
 
-                            final FileInfo file = FileUtils.openFileStream(FilePickerDelegate.this.activity, uri, loadDataToMemory);
+                            FileInfo file = null;
+                            try {
+                                file = FileUtils.openFileStream(FilePickerDelegate.this.activity, uri, loadDataToMemory);
+                            }catch (OutOfMemoryError exception){
+                                showToastOnMainThread("File very large");
+                                Log.d(TAG,"Failed to allocate large file space"+exception);
+                            }catch (Exception exception){
+                                Log.d(TAG,"Failed to allocate large file space"+exception.toString());
+                            }
 
                             if(file != null) {
                                 files.add(file);
@@ -143,8 +160,13 @@ public class FilePickerDelegate implements PluginRegistry.ActivityResultListener
                                     for (Parcelable fileUri : fileUris) {
                                         if (fileUri instanceof Uri) {
                                             Uri currentUri = (Uri) fileUri;
-                                            final FileInfo file = FileUtils.openFileStream(FilePickerDelegate.this.activity, currentUri, loadDataToMemory);
-
+                                            FileInfo file =null;
+                                            try {
+                                                file = FileUtils.openFileStream(FilePickerDelegate.this.activity, currentUri, loadDataToMemory);
+                                            }catch (OutOfMemoryError exception){
+                                                showToastOnMainThread("File very large");
+                                                Log.d(TAG,"Failed to allocate large file space");
+                                            }
                                             if (file != null) {
                                                 files.add(file);
                                                 Log.d(FilePickerDelegate.TAG, "[MultiFilePick] File #" + currentItem + " - URI: " + currentUri.getPath());
@@ -328,4 +350,12 @@ public class FilePickerDelegate implements PluginRegistry.ActivityResultListener
         void askForPermission(String permissionName, int requestCode);
     }
 
+    private void showToastOnMainThread(final String message){
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(activity, message, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
 }
